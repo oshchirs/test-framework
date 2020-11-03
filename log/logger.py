@@ -182,7 +182,7 @@ class Log(HtmlLogManager, metaclass=Singleton):
         if not check_if_file_exists(messages_log):
             messages_log = "/var/log/syslog"
         log_files = {"messages": messages_log,
-                     "dmesg": "/home/user/dmesg",
+                     "dmesg": "/tmp/dmesg",
                      "cas": "/var/log/opencas.log"}
         TestRun.executor.run(f"dmesg > {log_files['dmesg']}")
 
