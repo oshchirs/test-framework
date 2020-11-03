@@ -2,6 +2,8 @@
 # Copyright(c) 2020 Intel Corporation
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
+from datetime import timedelta
+
 from connection.local_executor import LocalExecutor
 from connection.ssh_executor import SshExecutor
 from core.test_run import TestRun
@@ -38,7 +40,11 @@ class PowerControlPlugin:
     def power_cycle(self):
         self.executor.run(f"virsh reset {self.config['domain']}")
         TestRun.executor.wait_for_connection_loss()
-        TestRun.executor.wait_for_connection()
+        timeout = TestRun.config.get('reboot_timeout')
+        if timeout:
+            TestRun.executor.wait_for_connection(timedelta(seconds=int(timeout)))
+        else:
+            TestRun.executor.wait_for_connection()
 
 
 plugin_class = PowerControlPlugin
