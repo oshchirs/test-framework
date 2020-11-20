@@ -229,7 +229,7 @@ TestRun.generate_tests = __generate_tests
 @classmethod
 def __addoption(cls, parser):
     parser.addoption("--parametrization-type", choices=["pair", "full"], default="pair")
-    parser.addoption("--random-seed", default=None)
+    parser.addoption("--random-seed", type=int, default=None)
 
 
 TestRun.addoption = __addoption
