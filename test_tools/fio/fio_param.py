@@ -205,6 +205,9 @@ class FioParam(LinuxCommand):
     def offset(self, value: Size):
         return self.set_param('offset', int(value.get_value()))
 
+    def offset_increment(self, value: Size):
+        return self.set_param('offset_increment', f"{value.value}{value.unit.get_short_name()}")
+
     def percentage_random(self, value: int):
         if value <= 100:
             return self.set_param('percentage_random', value)
