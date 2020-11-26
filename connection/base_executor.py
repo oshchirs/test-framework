@@ -55,6 +55,10 @@ class BaseExecutor:
     def wait_cmd_finish(self, pid: int, timeout: timedelta = timedelta(minutes=30)):
         self.run(f"tail --pid={pid} -f /dev/null", timeout)
 
+    def check_if_process_exists(self, pid: int):
+        output = self.run(f"ps aux | awk '{{print $2 }}' | grep {pid}")
+        return True if output.exit_code == 0 else False
+
     def kill_process(self, pid: int):
         # TERM signal should be used in preference to the KILL signal, since a
         # process may install a handler for the TERM signal in order to perform
