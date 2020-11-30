@@ -64,6 +64,33 @@ class Unit(enum.Enum):
     def get_value(self):
         return self.value
 
+    def __str__(self):
+        return self.get_name()
+
+    def get_name(self):
+        return self.name
+
+    def get_short_name(self):
+        if self == Unit.Byte:
+            return "B"
+        elif self == Unit.KibiByte:
+            return "KiB"
+        elif self == Unit.KiloByte:
+            return "KB"
+        elif self == Unit.MebiByte:
+            return "MiB"
+        elif self == Unit.MegaByte:
+            return "MB"
+        elif self == Unit.GibiByte:
+            return "GiB"
+        elif self == Unit.GigaByte:
+            return "GB"
+        elif self == Unit.TebiByte:
+            return "TiB"
+        elif self == Unit.TeraByte:
+            return "TB"
+        raise ValueError(f"Unable to get short unit name for {self}.")
+
 
 class UnitPerSecond:
     def __init__(self, unit):
@@ -82,7 +109,7 @@ class Size:
         self.unit = unit
 
     def __str__(self):
-        return f"{self.get_value(self.unit)} {self.unit.name}"
+        return f"{self.get_value(self.unit)} {self.unit}"
 
     def __hash__(self):
         return self.value.__hash__()
