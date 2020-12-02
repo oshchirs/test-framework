@@ -15,9 +15,8 @@ class PowerControlPlugin:
         try:
             self.ip = config['ip']
             self.user = config['user']
-            self.password = config['password']
         except Exception:
-            raise Exception("Missing fields in config! ('ip', 'user' and 'password' required)")
+            raise Exception("Missing fields in config! ('ip' and 'user' required)")
 
     def pre_setup(self):
         print("Power Control LibVirt Plugin pre setup")
@@ -25,7 +24,6 @@ class PowerControlPlugin:
             self.executor = SshExecutor(
                 self.ip,
                 self.user,
-                self.password,
                 self.config.get('port', 22)
             )
         else:

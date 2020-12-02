@@ -5,21 +5,18 @@
 
 import socket
 import subprocess
-from datetime import timedelta, datetime
-
 import paramiko
-from paramiko.ssh_exception import NoValidConnectionsError
 
+from datetime import timedelta, datetime
 from connection.base_executor import BaseExecutor
 from core.test_run import TestRun
 from test_utils.output import Output
 
 
 class SshExecutor(BaseExecutor):
-    def __init__(self, ip, username, password, port=22):
+    def __init__(self, ip, username, port=22):
         self.ip = ip
         self.user = username
-        self.password = password
         self.port = port
         self.ssh = paramiko.SSHClient()
         self._check_config_for_reboot_timeout()
@@ -27,18 +24,21 @@ class SshExecutor(BaseExecutor):
     def __del__(self):
         self.ssh.close()
 
-    def connect(self, user=None, passwd=None, port=None,
+    def connect(self, user=None, port=None,
                 timeout: timedelta = timedelta(seconds=30)):
         user = user or self.user
-        passwd = passwd or self.password
         port = port or self.port
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
-            self.ssh.connect(self.ip, username=user, password=passwd,
+            self.ssh.connect(self.ip, username=user,
                              port=port, timeout=timeout.total_seconds())
+        except paramiko.AuthenticationException as e:
+            raise paramiko.AuthenticationException(
+                f"Authentication exception occurred while trying to connect to DUT. "
+                f"Please check your SSH key-based authentication.\n{e}")
         except (paramiko.SSHException, socket.timeout) as e:
             raise ConnectionError(f"An exception of type '{type(e)}' occurred while trying to "
-                                  f"connect to {self.ip}\n{e}")
+                                  f"connect to {self.ip}.\n {e}")
 
     def disconnect(self):
         try:
@@ -75,7 +75,7 @@ class SshExecutor(BaseExecutor):
 
         try:
             completed_process = subprocess.run(
-                f'sshpass -p "{self.password}" rsync -r -e "ssh -p {self.port} '
+                f'rsync -r -e "ssh -p {self.port} '
                 f'-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" '
                 + src_to_dst + f'{" ".join(options)}',
                 shell=True,
@@ -83,7 +83,8 @@ class SshExecutor(BaseExecutor):
                 stderr=subprocess.PIPE,
                 timeout=timeout.total_seconds())
         except Exception as e:
-            TestRun.LOGGER.exception(f"Exception occurred during rsync process.\n{e}")
+            TestRun.LOGGER.exception(f"Exception occurred during rsync process. "
+                                     f"Please check your SSH key-based authentication.\n{e}")
 
         if completed_process.returncode:
             raise Exception(f"rsync failed:\n{completed_process}")
@@ -122,6 +123,8 @@ class SshExecutor(BaseExecutor):
                 try:
                     self.connect()
                     return
+                except paramiko.AuthenticationException:
+                    raise
                 except Exception:
                     continue
             raise ConnectionError("Timeout occurred while trying to establish ssh connection")

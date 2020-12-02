@@ -116,15 +116,14 @@ def __presetup(cls):
 
         port = cls.config.get('port', 22)
 
-        if 'user' in cls.config and 'password' in cls.config:
+        if 'user' in cls.config:
             cls.executor = SshExecutor(
                 cls.config['ip'],
                 cls.config['user'],
-                cls.config['password'],
                 port
             )
         else:
-            TestRun.block("There are no credentials in config.")
+            TestRun.block("There is no user given in config.")
     elif cls.config['type'] == 'local':
         cls.executor = LocalExecutor()
     else:
