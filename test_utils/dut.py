@@ -23,9 +23,11 @@ class Dut:
         self.ip = dut_info['ip'] if 'ip' in dut_info else None
 
     def __str__(self):
-        dut_str = f'ipmi: {self.ipmi}\n' if self.ipmi is not None else ''
-        dut_str += f'spider: {self.spider}\n' if self.spider is not None else ''
-        dut_str += f'wps: {self.wps}\n' if self.wps is not None else ''
+        dut_str = f'ip: {self.ip}\n' if self.ip is not None else ''
+        dut_str += f'ipmi: {self.ipmi["ip"]}\n' if self.ipmi is not None else ''
+        dut_str += f'spider: {self.spider["ip"]}\n' if self.spider is not None else ''
+        dut_str += f'wps: {self.wps["ip"]} port: {self.wps["port"]}\n' \
+            if self.wps is not None else ''
         dut_str += f'disks:\n'
         for disk in self.disks:
             dut_str += f"\t{disk}"
