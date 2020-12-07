@@ -299,7 +299,7 @@ class FioParam(LinuxCommand):
 
     def target(self, target):
         if isinstance(target, Device):
-            return self.file_name(target.system_path)
+            return self.file_name(target.path)
         return self.file_name(target)
 
     def add_job(self, job_name=None):

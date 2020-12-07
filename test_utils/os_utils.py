@@ -376,7 +376,7 @@ def set_wbt_lat(device: Device, value: int):
         raise ValueError("Write back latency can't be negative number")
 
     wbt_lat_config_path = os.path.join(
-        get_sysfs_path(device.system_path.strip("/dev/")), "queue/wbt_lat_usec"
+        get_sysfs_path(device.get_device_id()), "queue/wbt_lat_usec"
     )
 
     return TestRun.executor.run_expect_success(f"echo {value} > {wbt_lat_config_path}")
@@ -384,7 +384,7 @@ def set_wbt_lat(device: Device, value: int):
 
 def get_wbt_lat(device: Device):
     wbt_lat_config_path = os.path.join(
-        get_sysfs_path(device.system_path.strip("/dev/")), "queue/wbt_lat_usec"
+        get_sysfs_path(device.get_device_id()), "queue/wbt_lat_usec"
     )
 
     return int(TestRun.executor.run_expect_success(f"cat {wbt_lat_config_path}").stdout)

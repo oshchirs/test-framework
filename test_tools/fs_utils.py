@@ -6,6 +6,7 @@
 
 import base64
 import math
+import re
 import textwrap
 from datetime import datetime
 

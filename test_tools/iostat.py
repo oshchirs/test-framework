@@ -170,10 +170,10 @@ def _get_iostat_list(
         iostat_cmd += f"-y {interval} 1 "
 
     iostat_cmd += " ".join(
-        [name.system_path.strip("/dev/") for name in devices_list]
+        [name.get_device_id() for name in devices_list]
     )
     grep_pattern = "\\|".join(
-        [name.system_path.strip("/dev/") for name in devices_list]
+        [name.get_device_id() for name in devices_list]
     )
 
     lines = TestRun.executor.run(

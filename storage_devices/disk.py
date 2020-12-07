@@ -98,8 +98,6 @@ class Disk(Device):
         block_size,
     ):
         Device.__init__(self, path)
-        path = fs_utils.readlink(path)
-        self.device_name = path.split('/')[-1]
         self.serial_number = serial_number
         self.block_size = Unit(block_size)
         self.disk_type = disk_type
@@ -113,8 +111,8 @@ class Disk(Device):
 
     def umount_all_partitions(self):
         TestRun.LOGGER.info(
-            f"Umounting all partitions from: {self.system_path}")
-        cmd = f'umount -l {self.system_path}*?'
+            f"Umounting all partitions from: {self.path}")
+        cmd = f'umount -l {fs_utils.readlink(self.path)}*?'
         TestRun.executor.run(cmd)
 
     def remove_partitions(self):
@@ -130,14 +128,15 @@ class Disk(Device):
             if self.serial_number not in serial_numbers:
                 return False
             else:
-                self.device_name = serial_numbers[self.serial_number]
-                self.system_path = f"/dev/{self.device_name}"
+                path = serial_numbers[self.serial_number]
+                disk_utils.validate_dev_path(path)
+                self.path = path
                 for part in self.partitions:
-                    part.system_path = disk_utils.get_partition_path(
-                        part.parent_device.system_path, part.number)
+                    part.path = disk_utils.get_partition_path(
+                        part.parent_device.path, part.number)
                 return True
-        elif self.system_path:
-            output = fs_utils.ls_item(f"{self.system_path}")
+        elif self.path:
+            output = fs_utils.ls_item(f"{self.path}")
             return fs_utils.parse_ls_output(output)[0] is not None
         raise Exception("Couldn't check if device is detected by the system")
 
@@ -157,12 +156,8 @@ class Disk(Device):
     def unplug(self):
         if not self.is_detected():
             return
-        if not self.device_name:
-            raise Exception("Couldn't unplug disk without disk id in /dev/.")
         self.execute_unplug_command()
         self.wait_for_plug_status(False)
-        if self.serial_number:
-            self.device_name = None
 
     @staticmethod
     def plug_all_disks():
@@ -170,7 +165,7 @@ class Disk(Device):
         TestRun.executor.run_expect_success(SataDisk.plug_all_command)
 
     def __str__(self):
-        disk_str = f'system path: {self.system_path}, type: {self.disk_type}, ' \
+        disk_str = f'system path: {self.path}, type: {self.disk_type}, ' \
             f'serial: {self.serial_number}, size: {self.size}, ' \
             f'block size: {self.block_size}, partitions:\n'
         for part in self.partitions:
@@ -199,9 +194,9 @@ class NvmeDisk(Disk):
 
     def execute_unplug_command(self):
         if TestRun.executor.run(
-                f"echo 1 > /sys/block/{self.device_name}/device/remove").exit_code != 0:
+                f"echo 1 > /sys/block/{self.get_device_id()}/device/remove").exit_code != 0:
             output = TestRun.executor.run(
-                f"echo 1 > /sys/block/{self.device_name}/device/device/remove")
+                f"echo 1 > /sys/block/{self.get_device_id()}/device/device/remove")
             if output.exit_code != 0:
                 raise CmdException(f"Failed to unplug PCI disk using sysfs.", output)
 
@@ -219,10 +214,10 @@ class SataDisk(Disk):
 
     def execute_unplug_command(self):
         TestRun.executor.run_expect_success(
-            f"echo 1 > {self.get_sysfs_properties(self.device_name).full_path}/device/delete")
+            f"echo 1 > {self.get_sysfs_properties(self.get_device_id()).full_path}/device/delete")
 
-    def get_sysfs_properties(self, device_name):
-        ls_command = f"$(find -H /sys/devices/ -name {device_name} -type d)"
+    def get_sysfs_properties(self, device_id):
+        ls_command = f"$(find -H /sys/devices/ -name {device_id} -type d)"
         output = fs_utils.ls_item(f"{ls_command}")
         sysfs_addr = fs_utils.parse_ls_output(output)[0]
         if not sysfs_addr:
