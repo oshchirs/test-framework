@@ -223,6 +223,7 @@ def get_first_partition_offset(device, aligned: bool):
 
 
 def remove_partitions(device):
+    from test_utils.os_utils import Udev
     if device.is_mounted():
         device.unmount()
 
@@ -231,6 +232,7 @@ def remove_partitions(device):
 
     TestRun.LOGGER.info(f"Removing partitions from device: {device.path}.")
     device.wipe_filesystem()
+    Udev.trigger_settle()
     output = TestRun.executor.run(f"ls {device.path}* -1")
     if len(output.stdout.split('\n')) > 1:
         TestRun.LOGGER.error(f"Could not remove partitions from device {device.path}")
