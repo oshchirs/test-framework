@@ -203,6 +203,23 @@ def allocate_memory(size: Size):
         raise CmdException("Allocating memory failed.", output)
 
 
+def get_number_of_processors_from_cpuinfo():
+    """Returns number of processors which are listed out in /proc/cpuinfo
+    and since it's zero-based list that's why +1 operation take a place here"""
+    cmd = f"cat /proc/cpuinfo | grep processor | wc -l"
+    output = TestRun.executor.run(cmd).stdout
+    number_of_processors = int(output) + 1
+
+    return number_of_processors
+
+
+def get_number_of_processes(process_name):
+    cmd = f"ps aux | grep {process_name} | grep -v grep | wc -l"
+    output = TestRun.executor.run(cmd).stdout
+
+    return int(output)
+
+
 def mount_ramfs():
     """Mounts ramfs to enable allocating memory space"""
     if not check_if_directory_exists(MEMORY_MOUNT_POINT):
