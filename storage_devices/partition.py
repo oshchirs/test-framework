@@ -10,7 +10,7 @@ from test_utils.size import Size
 
 class Partition(Device):
     def __init__(self, parent_dev, type, number, begin: Size, end: Size):
-        Device.__init__(self, disk_utils.get_partition_path(parent_dev.system_path, number))
+        Device.__init__(self, disk_utils.get_partition_path(parent_dev.path, number))
         self.number = number
         self.parent_device = parent_dev
         self.type = type
@@ -18,5 +18,5 @@ class Partition(Device):
         self.end = end
 
     def __str__(self):
-        return f"\tsystem path: {self.system_path}, size: {self.size}, type: {self.type}, " \
-            f"parent device: {self.parent_device.system_path}\n"
+        return f"\tsystem path: {self.path}, size: {self.size}, type: {self.type}, " \
+            f"parent device: {self.parent_device.path}\n"

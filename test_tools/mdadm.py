@@ -40,7 +40,7 @@ class Mdadm:
     def detail(raid_device_paths: str):
         if not raid_device_paths:
             raise ValueError("Provide paths of RAID devices to show details for.")
-        cmd = f"mdadm --detail {raid_device_paths}"
+        cmd = f"mdadm --detail {raid_device_paths} --prefer=by-id"
         return TestRun.executor.run_expect_success(cmd)
 
     @classmethod

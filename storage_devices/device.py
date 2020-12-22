@@ -13,10 +13,10 @@ from test_utils.size import Size, Unit
 
 class Device:
     def __init__(self, path):
-        path = fs_utils.readlink(path)
-        self.size = Size(disk_utils.get_size(path.replace('/dev/', '')), Unit.Byte)
-        self.system_path = path
-        self.filesystem = get_device_filesystem_type(path)
+        disk_utils.validate_dev_path(path)
+        self.path = path
+        self.size = Size(disk_utils.get_size(self.get_device_id()), Unit.Byte)
+        self.filesystem = get_device_filesystem_type(self.get_device_id())
         self.mount_point = None
 
     def create_filesystem(self, fs_type: disk_utils.Filesystem, force=True, blocksize=None):
@@ -28,12 +28,13 @@ class Device:
         self.filesystem = None
 
     def is_mounted(self):
-        output = TestRun.executor.run(f"findmnt {self.system_path}")
+        output = TestRun.executor.run(f"findmnt {self.path}")
         if output.exit_code != 0:
             return False
         else:
             mount_point_line = output.stdout.split('\n')[1]
-            self.mount_point = mount_point_line[0:mount_point_line.find(self.system_path)].strip()
+            device_path = fs_utils.readlink(self.path)
+            self.mount_point = mount_point_line[0:mount_point_line.find(device_path)].strip()
             return True
 
     def mount(self, mount_point, options: [str] = None):
@@ -54,15 +55,15 @@ class Device:
         return next(i for i in items if i.full_path.startswith(directory))
 
     def get_device_id(self):
-        return self.system_path.split('/')[-1]
+        return fs_utils.readlink(self.path).split('/')[-1]
 
     def get_all_device_links(self, directory: str):
         from test_tools import fs_utils
-        output = fs_utils.ls(f"$(find -L {directory} -samefile {self.system_path})")
-        return fs_utils.parse_ls_output(output, self.system_path)
+        output = fs_utils.ls(f"$(find -L {directory} -samefile {self.path})")
+        return fs_utils.parse_ls_output(output, self.path)
 
     def get_io_stats(self):
-        return IoStats.get_io_stats(self.system_path.replace('/dev/', ''))
+        return IoStats.get_io_stats(self.get_device_id())
 
     def get_sysfs_property(self, property_name):
         path = os.path.join(disk_utils.get_sysfs_path(self.get_device_id()), "queue", property_name)
@@ -89,10 +90,14 @@ class Device:
         return self.get_sysfs_property("discard_zeroes_data")
 
     def __str__(self):
-        return f'system path: {self.system_path}, filesystem: {self.filesystem}, ' \
-               f'mount point: {self.mount_point}, size: {self.size}'
+        return (
+            f'system path: {self.path}, short link: /dev/{self.get_device_id()},'
+            f' filesystem: {self.filesystem}, mount point: {self.mount_point}, size: {self.size}'
+        )
 
     @staticmethod
     def get_scsi_debug_devices():
-        scsi_debug_devices = TestRun.executor.run_expect_success("lsscsi | grep scsi_debug").stdout
-        return [Device(device.split()[-1]) for device in scsi_debug_devices.splitlines()]
+        scsi_debug_devices = TestRun.executor.run_expect_success(
+            "lsscsi --scsi_id | grep scsi_debug").stdout
+        return [Device(os.path.join('/dev/disk/by-id/scsi-', device.split()[-1]))
+                for device in scsi_debug_devices.splitlines()]

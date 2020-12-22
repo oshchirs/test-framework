@@ -89,7 +89,7 @@ class DmTable:
                 0,
                 device.size.get_value(Unit.Blocks512),
                 DmTarget.LINEAR,
-                device.system_path,
+                device.path,
                 0,
             )
         )
@@ -112,7 +112,7 @@ class DmTable:
         for gap in gaps[:-1]:
             self.add_entry(
                 DmTable.TableEntry(
-                    gap[0], gap[1], DmTarget.LINEAR, device.system_path, int(gap[0])
+                    gap[0], gap[1], DmTarget.LINEAR, device.path, int(gap[0])
                 )
             )
 
@@ -124,7 +124,7 @@ class DmTable:
                     table_end,
                     device.size.get_value(Unit.Blocks512) - table_end,
                     DmTarget.LINEAR,
-                    device.system_path,
+                    device.path,
                     table_end,
                 )
             )

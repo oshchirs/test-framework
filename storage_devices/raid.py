@@ -14,7 +14,7 @@ from test_utils.size import Size, Unit
 
 
 def get_devices_paths_string(devices: [Device]):
-    return " ".join([d.system_path for d in devices])
+    return " ".join([d.path for d in devices])
 
 
 class Level(IntEnum):
@@ -100,7 +100,7 @@ class Raid(Disk):
         return self.__block_size
 
     def stop(self):
-        Mdadm.stop(self.system_path)
+        Mdadm.stop(self.path)
         if self.container_path:
             Mdadm.stop(self.container_path)
 

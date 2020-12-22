@@ -111,13 +111,13 @@ class BlkTrace:
                                 else f" --num-sub-buffers={number_of_subbuffers}")
         buffer_size = ("" if buffer_size is None
                        else f" --buffer-size={buffer_size.get_value(Unit.KibiByte)}")
-        command = (f"blktrace{number_of_subbuffers}{buffer_size} --dev={self.device.system_path}"
+        command = (f"blktrace{number_of_subbuffers}{buffer_size} --dev={self.device.path}"
                    f"{self.masks} --output={PREFIX} --output-dir={self.__outputDirectoryPath}")
         echo_output = TestRun.executor.run_expect_success(
             f"nohup {command} </dev/null &>{self.__outputDirectoryPath}/out & echo $!"
         )
         self.blktrace_pid = int(echo_output.stdout)
-        TestRun.LOGGER.info(f"blktrace monitoring for device {self.device.system_path} started"
+        TestRun.LOGGER.info(f"blktrace monitoring for device {self.device.path} started"
                             f" (PID: {self.blktrace_pid}, output dir: {self.__outputDirectoryPath}")
 
     def stop_monitoring(self):
@@ -131,7 +131,7 @@ class BlkTrace:
 
         # dummy command for swallowing output of killed command
         TestRun.executor.run("sleep 2 && echo dummy")
-        TestRun.LOGGER.info(f"blktrace monitoring for device {self.device.system_path} stopped")
+        TestRun.LOGGER.info(f"blktrace monitoring for device {self.device.path} stopped")
 
         return self.__parse_blktrace_output()
 

@@ -4,6 +4,7 @@
 #
 
 
+import os
 import re
 import time
 from enum import Enum
@@ -11,6 +12,7 @@ from enum import Enum
 from core.test_run import TestRun
 from test_tools import fs_utils
 from test_tools.dd import Dd
+from test_tools.fs_utils import readlink, parse_ls_output, ls
 from test_utils.output import CmdException
 from test_utils.size import Size, Unit
 
@@ -40,33 +42,33 @@ class PartitionType(Enum):
 
 def create_filesystem(device, filesystem: Filesystem, force=True, blocksize=None):
     TestRun.LOGGER.info(
-        f"Creating filesystem ({filesystem.name}) on device: {device.system_path}")
+        f"Creating filesystem ({filesystem.name}) on device: {device.path}")
     force_param = ' -f ' if filesystem == Filesystem.xfs else ' -F '
     force_param = force_param if force else ''
     block_size_param = f' -b size={blocksize}' if filesystem == Filesystem.xfs \
         else f' -b {blocksize}'
     block_size_param = block_size_param if blocksize else ''
-    cmd = f'mkfs.{filesystem.name} {force_param} {device.system_path} {block_size_param}'
+    cmd = f'mkfs.{filesystem.name} {force_param} {device.path} {block_size_param}'
     cmd = re.sub(' +', ' ', cmd)
     TestRun.executor.run_expect_success(cmd)
     TestRun.LOGGER.info(
-        f"Successfully created filesystem on device: {device.system_path}")
+        f"Successfully created filesystem on device: {device.path}")
 
 
 def create_partition_table(device, partition_table_type: PartitionTable = PartitionTable.gpt):
     TestRun.LOGGER.info(
-        f"Creating partition table ({partition_table_type.name}) for device: {device.system_path}")
-    cmd = f'parted --script {device.system_path} mklabel {partition_table_type.name}'
+        f"Creating partition table ({partition_table_type.name}) for device: {device.path}")
+    cmd = f'parted --script {device.path} mklabel {partition_table_type.name}'
     TestRun.executor.run_expect_success(cmd)
     device.partition_table = partition_table_type
     TestRun.LOGGER.info(
         f"Successfully created {partition_table_type.name} "
-        f"partition table on device: {device.system_path}")
+        f"partition table on device: {device.path}")
 
 
 def get_partition_path(parent_dev, number):
     # TODO: change this to be less specific hw dependent
-    id_separator = 'p' if parent_dev[-1].isdigit() else ''
+    id_separator = '-part'
     return f'{parent_dev}{id_separator}{number}'
 
 
@@ -78,7 +80,7 @@ def create_partition(
         unit=Unit.MebiByte,
         aligned: bool = True):
     TestRun.LOGGER.info(
-        f"Creating {part_type.name} partition on device: {device.system_path}")
+        f"Creating {part_type.name} partition on device: {device.path}")
 
     begin = get_first_partition_offset(device, aligned)
     for part in device.partitions:
@@ -91,7 +93,7 @@ def create_partition(
 
     end = (begin + part_size) if part_size != Size.zero() else '100%'
 
-    cmd = f'parted --script {device.system_path} mkpart ' \
+    cmd = f'parted --script {device.path} mkpart ' \
           f'{part_type.name} ' \
           f'{begin.get_value(unit)}{unit_to_string(unit)} ' \
           f'{end.get_value(unit)}{unit_to_string(unit)}'
@@ -104,7 +106,7 @@ def create_partition(
     if not check_partition_after_create(
             part_size,
             part_number,
-            device.system_path,
+            device.path,
             part_type,
             aligned):
         raise Exception("Could not create partition!")
@@ -117,14 +119,14 @@ def create_partition(
                              begin,
                              end if type(end) is Size else device.size)
         dd = Dd().input("/dev/zero") \
-                 .output(new_part.system_path) \
+                 .output(new_part.path) \
                  .count(1) \
                  .block_size(Size(1, Unit.Blocks4096)) \
                  .oflag("direct")
         dd.run()
         device.partitions.append(new_part)
 
-    TestRun.LOGGER.info(f"Successfully created {part_type.name} partition on {device.system_path}")
+    TestRun.LOGGER.info(f"Successfully created {part_type.name} partition on {device.path}")
 
 
 def create_partitions(device, sizes: [], partition_table_type=PartitionTable.gpt):
@@ -177,7 +179,7 @@ def get_sysfs_path(device):
 
 def check_partition_after_create(size, part_number, parent_dev_path, part_type, aligned):
     partition_path = get_partition_path(parent_dev_path, part_number)
-    cmd = f"find {partition_path} -type b"
+    cmd = f"find {partition_path} -type l"
     output = TestRun.executor.run_expect_success(cmd).stdout
     if partition_path not in output:
         TestRun.LOGGER.info(
@@ -201,13 +203,14 @@ def check_partition_after_create(size, part_number, parent_dev_path, part_type, 
         TestRun.LOGGER.warning(
             f"Partition {partition_path} is not 4k aligned: {size.get_value(Unit.KibiByte)}KiB")
 
+    partition_size = get_size(readlink(partition_path).split('/')[-1])
     if part_type == PartitionType.extended or \
-            get_size(partition_path.replace('/dev/', '')) == size.get_value(Unit.Byte):
+            partition_size == size.get_value(Unit.Byte):
         return True
 
     TestRun.LOGGER.warning(
-        f"Partition size {get_size(partition_path.replace('/dev/', ''))} does not match expected "
-        f"{size.get_value(Unit.Byte)} size.")
+        f"Partition size {partition_size} does not match expected {size.get_value(Unit.Byte)} size."
+    )
     return True
 
 
@@ -226,16 +229,16 @@ def remove_partitions(device):
     for partition in device.partitions:
         unmount(partition)
 
-    TestRun.LOGGER.info(f"Removing partitions from device: {device.system_path}.")
+    TestRun.LOGGER.info(f"Removing partitions from device: {device.path}.")
     dd = Dd().input("/dev/zero") \
-        .output(device.system_path) \
+        .output(device.path) \
         .count(1) \
         .block_size(Size(1, Unit.Blocks4096))\
         .oflag("direct")
     dd.run()
-    output = TestRun.executor.run(f"ls {device.system_path}* -1")
+    output = TestRun.executor.run(f"ls {device.path}* -1")
     if len(output.stdout.split('\n')) > 1:
-        TestRun.LOGGER.error(f"Could not remove partitions from device {device.system_path}")
+        TestRun.LOGGER.error(f"Could not remove partitions from device {device.path}")
         return False
     return True
 
@@ -243,18 +246,18 @@ def remove_partitions(device):
 def mount(device, mount_point, options: [str] = None):
     if not fs_utils.check_if_directory_exists(mount_point):
         fs_utils.create_directory(mount_point, True)
-    TestRun.LOGGER.info(f"Mounting device {device.system_path} to {mount_point}.")
-    cmd = f"mount {device.system_path} {mount_point}"
+    TestRun.LOGGER.info(f"Mounting device {device.path} to {mount_point}.")
+    cmd = f"mount {device.path} {mount_point}"
     if options:
         cmd = f"{cmd} -o {','.join(options)}"
     output = TestRun.executor.run(cmd)
     if output.exit_code != 0:
-        raise Exception(f"Failed to mount {device.system_path} to {mount_point}")
+        raise Exception(f"Failed to mount {device.path} to {mount_point}")
     device.mount_point = mount_point
 
 
 def unmount(device):
-    TestRun.LOGGER.info(f"Unmounting device {device.system_path}.")
+    TestRun.LOGGER.info(f"Unmounting device {device.path}.")
     if device.mount_point is not None:
         output = TestRun.executor.run(f"umount {device.mount_point}")
         if output.exit_code != 0:
@@ -285,21 +288,21 @@ def unit_to_string(unit):
 
 def wipe_filesystem(device, force=True):
     TestRun.LOGGER.info(
-        f"Deleting filesystem ({device.filesystem.name}) on device: {device.system_path}")
+        f"Deleting filesystem ({device.filesystem.name}) on device: {device.path}")
     force_param = ' -f' if force else ''
-    cmd = f'wipefs -a{force_param} {device.system_path}'
+    cmd = f'wipefs -a{force_param} {device.path}'
     TestRun.executor.run_expect_success(cmd)
     TestRun.LOGGER.info(
-        f"Successfully wiped filesystem from device: {device.system_path}")
+        f"Successfully wiped filesystem from device: {device.path}")
 
 
-def get_device_filesystem_type(device_system_path):
-    cmd = f'lsblk -l -o NAME,FSTYPE | uniq | grep "{device_system_path.replace("/dev/", "")} "'
+def get_device_filesystem_type(device_id):
+    cmd = f'lsblk -l -o NAME,FSTYPE | uniq | grep "{device_id} "'
     try:
         stdout = TestRun.executor.run_expect_success(cmd).stdout
     except CmdException:
         # unusual devices might not be listed in output (i.e. RAID containers)
-        if TestRun.executor.run(f"test -b {device_system_path}").exit_code != 0:
+        if TestRun.executor.run(f"test -b /dev/{device_id}").exit_code != 0:
             raise
         else:
             return None
@@ -312,3 +315,46 @@ def get_device_filesystem_type(device_system_path):
         except KeyError:
             TestRun.LOGGER.warning(f"Unrecognized filesystem: {split_stdout[1]}")
             return None
+
+
+def _is_by_id_path(path: str):
+    """check if given path already is proper by-id path"""
+    dev_by_id_dir = "/dev/disk/by-id"
+    by_id_paths = parse_ls_output(ls(dev_by_id_dir), dev_by_id_dir)
+    return path in [os.path.join(dev_by_id_dir, id_path.full_path) for id_path in by_id_paths]
+
+
+def _is_dev_path_whitelisted(path: str):
+    """check if given path is whitelisted"""
+    return re.search(r"cas\d+-\d+", path) is not None
+
+
+def _is_dev_path_blacklisted(path: str):
+    """check if given path is blacklisted"""
+    dev_by_id_dir = "/dev/disk/by-id"
+    by_id_paths = parse_ls_output(ls(dev_by_id_dir), dev_by_id_dir)
+    blacklist = ["/dev/disk/by-id/lvm", "/dev/disk/by-id/md-name"]
+    for x in blacklist:
+        for entry in by_id_paths:
+            if not entry.full_path.startswith(x):
+                continue
+            if path == entry:
+                return True
+    return False
+
+
+def validate_dev_path(path: str):
+    if not os.path.isabs(path):
+        raise ValueError(f'Given path "{path}" is not absolute.')
+
+    if _is_dev_path_blacklisted(path):
+        raise ValueError(f'Given path "{path}" is forbidden.'
+                         f'Please use other path do this device.')
+
+    if _is_dev_path_whitelisted(path):
+        return path
+
+    if _is_by_id_path(path):
+        return path
+
+    raise ValueError(f'By-id device link {path} is broken.')
