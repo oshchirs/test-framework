@@ -296,6 +296,14 @@ def wipe_filesystem(device, force=True):
         f"Successfully wiped filesystem from device: {device.path}")
 
 
+def check_if_device_supports_trim(device):
+    if device.get_device_id().startswith("nvme"):
+        return True
+    command_output = TestRun.executor.run(
+        f'hdparm -I {device.path} | grep "TRIM supported"')
+    return command_output.exit_code == 0
+
+
 def get_device_filesystem_type(device_id):
     cmd = f'lsblk -l -o NAME,FSTYPE | uniq | grep "{device_id} "'
     try:
