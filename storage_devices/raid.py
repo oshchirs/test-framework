@@ -10,6 +10,7 @@ from storage_devices.device import Device
 from storage_devices.disk import Disk
 from test_tools.fs_utils import readlink
 from test_tools.mdadm import Mdadm
+from test_utils.disk_finder import resolve_to_by_id_link
 from test_utils.size import Size, Unit
 
 
@@ -75,7 +76,7 @@ class Raid(Disk):
             array_devices: [Device] = [],
             volume_devices: [Device] = [],
     ):
-        Device.__init__(self, path)
+        Device.__init__(self, resolve_to_by_id_link(path.replace("/dev/", "")))
         self.device_name = path.split('/')[-1]
         self.level = level
         self.uuid = uuid

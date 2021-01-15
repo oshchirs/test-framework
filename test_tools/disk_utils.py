@@ -230,7 +230,8 @@ def remove_partitions(device):
     for partition in device.partitions:
         unmount(partition)
 
-    TestRun.LOGGER.info(f"Removing partitions from device: {device.path}.")
+    TestRun.LOGGER.info(f"Removing partitions from device: {device.path} "
+                        f"({device.get_device_id()}).")
     device.wipe_filesystem()
     Udev.trigger_settle()
     output = TestRun.executor.run(f"ls {device.path}* -1")
@@ -243,7 +244,8 @@ def remove_partitions(device):
 def mount(device, mount_point, options: [str] = None):
     if not fs_utils.check_if_directory_exists(mount_point):
         fs_utils.create_directory(mount_point, True)
-    TestRun.LOGGER.info(f"Mounting device {device.path} to {mount_point}.")
+    TestRun.LOGGER.info(f"Mounting device {device.path} ({device.get_device_id()}) "
+                        f"to {mount_point}.")
     cmd = f"mount {device.path} {mount_point}"
     if options:
         cmd = f"{cmd} -o {','.join(options)}"
@@ -254,7 +256,7 @@ def mount(device, mount_point, options: [str] = None):
 
 
 def unmount(device):
-    TestRun.LOGGER.info(f"Unmounting device {device.path}.")
+    TestRun.LOGGER.info(f"Unmounting device {device.path} ({device.get_device_id()}).")
     if device.mount_point is not None:
         output = TestRun.executor.run(f"umount {device.mount_point}")
         if output.exit_code != 0:
