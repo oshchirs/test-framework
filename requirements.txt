@@ -1,6 +1,6 @@
 pytest==4.4.0
 multimethod==1.1
-paramiko==3.2
+paramiko==2.6
 IPy==1.00
 aenum==2.2.1
 packaging==19.1
