@@ -223,6 +223,7 @@ def get_first_partition_offset(device, aligned: bool):
 
 
 def remove_partitions(device):
+    from test_utils.os_utils import Udev
     if device.is_mounted():
         device.unmount()
 
@@ -230,12 +231,8 @@ def remove_partitions(device):
         unmount(partition)
 
     TestRun.LOGGER.info(f"Removing partitions from device: {device.path}.")
-    dd = Dd().input("/dev/zero") \
-        .output(device.path) \
-        .count(1) \
-        .block_size(Size(1, Unit.Blocks4096))\
-        .oflag("direct")
-    dd.run()
+    device.wipe_filesystem()
+    Udev.trigger_settle()
     output = TestRun.executor.run(f"ls {device.path}* -1")
     if len(output.stdout.split('\n')) > 1:
         TestRun.LOGGER.error(f"Could not remove partitions from device {device.path}")
@@ -287,13 +284,12 @@ def unit_to_string(unit):
 
 
 def wipe_filesystem(device, force=True):
-    TestRun.LOGGER.info(
-        f"Deleting filesystem ({device.filesystem.name}) on device: {device.path}")
+    TestRun.LOGGER.info(f"Erasing the device: {device.path}")
     force_param = ' -f' if force else ''
     cmd = f'wipefs -a{force_param} {device.path}'
     TestRun.executor.run_expect_success(cmd)
     TestRun.LOGGER.info(
-        f"Successfully wiped filesystem from device: {device.path}")
+        f"Successfully wiped device: {device.path}")
 
 
 def get_device_filesystem_type(device_id):

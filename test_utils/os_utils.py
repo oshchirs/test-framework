@@ -135,6 +135,10 @@ class Udev(object):
         TestRun.LOGGER.info("Disabling udev")
         TestRun.executor.run_expect_success("udevadm control --stop-exec-queue")
 
+    @staticmethod
+    def trigger_settle():
+        TestRun.executor.run_expect_success("udevadm trigger && udevadm settle")
+
 
 def drop_caches(level: DropCachesMode = DropCachesMode.PAGECACHE):
     TestRun.executor.run_expect_success(
