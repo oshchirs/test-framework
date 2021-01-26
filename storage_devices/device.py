@@ -99,5 +99,5 @@ class Device:
     def get_scsi_debug_devices():
         scsi_debug_devices = TestRun.executor.run_expect_success(
             "lsscsi --scsi_id | grep scsi_debug").stdout
-        return [Device(os.path.join('/dev/disk/by-id/scsi-', device.split()[-1]))
+        return [Device(f'/dev/disk/by-id/scsi-{device.split()[-1]}')
                 for device in scsi_debug_devices.splitlines()]

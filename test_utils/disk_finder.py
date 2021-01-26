@@ -13,7 +13,6 @@ from test_utils.output import CmdException
 
 
 def find_disks():
-    block_devices = []
     devices_result = []
 
     TestRun.LOGGER.info("Finding platform's disks.")
@@ -41,7 +40,6 @@ def get_block_devices_list():
 
     for dev in devices:
         if ('sd' in dev or 'nvme' in dev) and dev not in os_disks:
-            dev = resolve_to_by_id_link(dev)
             block_devices.append(dev)
 
     return block_devices
@@ -49,19 +47,19 @@ def get_block_devices_list():
 
 def discover_hdd_devices(block_devices, devices_res):
     for dev in block_devices:
-        block_size = disk_utils.get_block_size(readlink(dev).replace('/dev/', ''))
+        block_size = disk_utils.get_block_size(dev)
         if int(block_size) == 4096:
             disk_type = 'hdd4k'
         else:
             disk_type = 'hdd'
         devices_res.append({
             "type": disk_type,
-            "path": f"{dev}",
+            "path": f"{resolve_to_by_id_link(dev)}",
             "serial": TestRun.executor.run_expect_success(
-                f"sg_inq {dev} | grep 'Unit serial number'"
+                f"sg_inq /dev/{dev} | grep -i 'serial number'"
             ).stdout.split(': ')[1].strip(),
             "blocksize": block_size,
-            "size": disk_utils.get_size(readlink(dev).replace('/dev/', ''))})
+            "size": disk_utils.get_size(dev)})
     block_devices.clear()
 
 
@@ -72,7 +70,7 @@ def discover_ssd_devices(block_devices, devices_res):
     for i in range(0, ssd_count):
         device_path = TestRun.executor.run_expect_success(
             f"isdct show -intelssd {i} | grep DevicePath").stdout.split()[2]
-        dev = resolve_to_by_id_link(device_path)
+        dev = device_path.replace("/dev/", "")
         if dev not in block_devices:
             continue
         serial_number = TestRun.executor.run_expect_success(
@@ -94,15 +92,15 @@ def discover_ssd_devices(block_devices, devices_res):
             "type": disk_type,
             "path": resolve_to_by_id_link(device_path),
             "serial": serial_number,
-            "blocksize": disk_utils.get_block_size(readlink(dev).replace('/dev/', '')),
-            "size": disk_utils.get_size(readlink(dev).replace('/dev/', ''))})
+            "blocksize": disk_utils.get_block_size(dev),
+            "size": disk_utils.get_size(dev)})
         block_devices.remove(dev)
 
 
 def get_disk_serial_number(dev_path):
     commands = [
-        f"udevadm info --query=all --name={dev_path} | grep 'SCSI.*_SERIAL' || "
-        f"udevadm info --query=all --name={dev_path} | grep 'ID_SERIAL_SHORT' | "
+        f"(udevadm info --query=all --name={dev_path} | grep 'SCSI.*_SERIAL' || "
+        f"udevadm info --query=all --name={dev_path} | grep 'ID_SERIAL_SHORT') | "
         "awk --field-separator '=' '{print $NF}'",
         f"sg_inq {dev_path} 2> /dev/null | grep '[Ss]erial number:' | "
         "awk '{print $NF}'",
@@ -117,16 +115,19 @@ def get_disk_serial_number(dev_path):
 
 
 def get_all_serial_numbers():
-    block_devices = []
     serial_numbers = {}
     block_devices = get_block_devices_list()
     for dev in block_devices:
         serial = get_disk_serial_number(dev)
+        try:
+            path = resolve_to_by_id_link(dev)
+        except Exception:
+            continue
         if serial:
-            serial_numbers[serial] = dev
+            serial_numbers[serial] = path
         else:
-            TestRun.LOGGER.warning(f"Device {dev} does not have a serial number.")
-            serial_numbers[dev] = dev
+            TestRun.LOGGER.warning(f"Device {path} ({dev}) does not have a serial number.")
+            serial_numbers[path] = path
     return serial_numbers
 
 

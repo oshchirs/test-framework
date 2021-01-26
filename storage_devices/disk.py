@@ -128,9 +128,7 @@ class Disk(Device):
             if self.serial_number not in serial_numbers:
                 return False
             else:
-                path = serial_numbers[self.serial_number]
-                disk_utils.validate_dev_path(path)
-                self.path = path
+                self.path = serial_numbers[self.serial_number]
                 for part in self.partitions:
                     part.path = disk_utils.get_partition_path(
                         part.parent_device.path, part.number)
