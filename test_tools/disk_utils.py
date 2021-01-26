@@ -233,7 +233,8 @@ def remove_partitions(device):
     TestRun.LOGGER.info(f"Removing partitions from device: {device.path} "
                         f"({device.get_device_id()}).")
     device.wipe_filesystem()
-    Udev.trigger_settle()
+    Udev.trigger()
+    Udev.settle()
     output = TestRun.executor.run(f"ls {device.path}* -1")
     if len(output.stdout.split('\n')) > 1:
         TestRun.LOGGER.error(f"Could not remove partitions from device {device.path}")

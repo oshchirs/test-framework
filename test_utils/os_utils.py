@@ -136,8 +136,12 @@ class Udev(object):
         TestRun.executor.run_expect_success("udevadm control --stop-exec-queue")
 
     @staticmethod
-    def trigger_settle():
-        TestRun.executor.run_expect_success("udevadm trigger && udevadm settle")
+    def trigger():
+        TestRun.executor.run_expect_success("udevadm trigger")
+
+    @staticmethod
+    def settle():
+        TestRun.executor.run_expect_success("udevadm settle")
 
 
 def drop_caches(level: DropCachesMode = DropCachesMode.PAGECACHE):
