@@ -10,4 +10,4 @@ lxml>=4.4.1
 wget>=3.2
 attotime>=0.2.0
 gitpython>=3.1.7
-cryptography==3.2
+cryptography==3.3.2
