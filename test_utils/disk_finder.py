@@ -110,7 +110,7 @@ def get_disk_serial_number(dev_path):
     for command in commands:
         serial = TestRun.executor.run(command).stdout
         if serial:
-            return serial
+            return serial.split('\n')[0]
     return None
 
 
