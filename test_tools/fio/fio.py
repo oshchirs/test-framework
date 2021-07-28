@@ -52,8 +52,14 @@ class Fio:
             return self.default_run_time
 
         total_time = self.global_cmd_parameters.get_parameter_value("runtime")
+        if len(total_time) != 1:
+            raise ValueError("Wrong fio 'runtime' parameter configuration")
+        total_time = int(total_time[0])
         ramp_time = self.global_cmd_parameters.get_parameter_value("ramp_time")
         if ramp_time is not None:
+            if len(ramp_time) != 1:
+                raise ValueError("Wrong fio 'ramp_time' parameter configuration")
+            ramp_time = int(ramp_time[0])
             total_time += ramp_time
         return datetime.timedelta(seconds=total_time)
 
