@@ -10,10 +10,15 @@ class Dut:
     def __init__(self, dut_info):
         self.disks = []
         for disk_info in dut_info.get('disks', []):
+            try:
+                features = disk_info['features']
+            except KeyError:
+                features = []
             self.disks.append(Disk.create_disk(disk_info['path'],
                                                DiskType[disk_info['type']],
                                                disk_info['serial'],
-                                               disk_info['blocksize']))
+                                               disk_info['blocksize'],
+                                               features))
         self.disks.sort(key=lambda disk: disk.disk_type, reverse=True)
 
         self.ipmi = dut_info['ipmi'] if 'ipmi' in dut_info else None

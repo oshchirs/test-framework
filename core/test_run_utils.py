@@ -20,7 +20,6 @@ from core.pair_testing import generate_pair_testing_testcases, register_testcase
 from log.base_log import BaseLogResult
 import core.test_run
 
-
 TestRun = core.test_run.TestRun
 
 
@@ -29,6 +28,11 @@ def __configure(cls, config):
     config.addinivalue_line(
         "markers",
         "require_disk(name, type): require disk of specific type, otherwise skip"
+    )
+    config.addinivalue_line(
+        "markers",
+        "require_disk_features(type, features): require disk of defined type with specific features"
+        "(eg. require_disk_features(DiskType.nand, ['qlc'])), otherwise skip"
     )
     config.addinivalue_line(
         "markers",
@@ -62,6 +66,10 @@ def __prepare(cls, item, config):
     cls.item = item
     cls.config = config
 
+    req_disk_features = list(
+        map(lambda mark: mark.args, cls.item.iter_markers(name="require_disk_features")))
+    cls.req_disk_features = dict(req_disk_features)
+
     req_disks = list(map(lambda mark: mark.args, cls.item.iter_markers(name="require_disk")))
     cls.req_disks = dict(req_disks)
     if len(req_disks) != len(cls.req_disks):
@@ -74,7 +82,9 @@ TestRun.prepare = __prepare
 @classmethod
 def __setup_disk(cls, disk_name, disk_type):
     cls.disks[disk_name] = next(filter(
-        lambda disk: disk.disk_type in disk_type.types() and disk not in cls.disks.values(),
+        lambda disk: disk.disk_type in disk_type.types()
+        and disk.has_features(cls.req_disk_features)
+        and disk not in cls.disks.values(),
         cls.dut.disks
     ))
     if not cls.disks[disk_name]:
