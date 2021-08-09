@@ -174,7 +174,7 @@ class Disk(Device):
     def __str__(self):
         disk_str = f'system path: {self.path}, type: {self.disk_type}, ' \
             f'serial: {self.serial_number}, size: {self.size}, ' \
-            f'block size: {self.block_size}, features: {self.features} partitions:\n'
+            f'block size: {self.block_size}, features: {self.features}, partitions:\n'
         for part in self.partitions:
             disk_str += f'\t{part}'
         return disk_str
