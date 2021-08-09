@@ -12,4 +12,4 @@ def start_async_func(func, *args):
     actual result after being awaited.
     """
     loop = asyncio.get_event_loop()
-    return loop.run_in_executor(None, func, args)
+    return loop.run_in_executor(None, func, *args)
