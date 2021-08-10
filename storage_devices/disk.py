@@ -96,14 +96,12 @@ class Disk(Device):
         disk_type: DiskType,
         serial_number,
         block_size,
-        features
     ):
         Device.__init__(self, path)
         self.serial_number = serial_number
         self.block_size = Unit(block_size)
         self.disk_type = disk_type
         self.partitions = []
-        self.features = features
 
     def create_partitions(
             self,
@@ -159,13 +157,6 @@ class Disk(Device):
         self.execute_unplug_command()
         self.wait_for_plug_status(False)
 
-    def has_features(self, req_features):
-        if self.disk_type in req_features:
-            feat = set(req_features[self.disk_type])
-            return len(feat.intersection(self.features)) == len(feat)
-        else:
-            return True
-
     @staticmethod
     def plug_all_disks():
         TestRun.executor.run_expect_success(NvmeDisk.plug_all_command)
@@ -174,7 +165,7 @@ class Disk(Device):
     def __str__(self):
         disk_str = f'system path: {self.path}, type: {self.disk_type}, ' \
             f'serial: {self.serial_number}, size: {self.size}, ' \
-            f'block size: {self.block_size}, features: {self.features}, partitions:\n'
+            f'block size: {self.block_size}, partitions:\n'
         for part in self.partitions:
             disk_str += f'\t{part}'
         return disk_str
@@ -183,19 +174,18 @@ class Disk(Device):
     def create_disk(path,
                     disk_type: DiskType,
                     serial_number,
-                    block_size,
-                    features):
+                    block_size):
         if disk_type is DiskType.nand or disk_type is DiskType.optane:
-            return NvmeDisk(path, disk_type, serial_number, block_size, features)
+            return NvmeDisk(path, disk_type, serial_number, block_size)
         else:
-            return SataDisk(path, disk_type, serial_number, block_size, features)
+            return SataDisk(path, disk_type, serial_number, block_size)
 
 
 class NvmeDisk(Disk):
     plug_all_command = "echo 1 > /sys/bus/pci/rescan"
 
-    def __init__(self, path, disk_type, serial_number, block_size, features):
-        Disk.__init__(self, path, disk_type, serial_number, block_size, features)
+    def __init__(self, path, disk_type, serial_number, block_size):
+        Disk.__init__(self, path, disk_type, serial_number, block_size)
 
     def execute_plug_command(self):
         TestRun.executor.run_expect_success(NvmeDisk.plug_all_command)
@@ -213,9 +203,9 @@ class SataDisk(Disk):
     plug_all_command = "for i in $(find -H /sys/devices/ -path '*/scsi_host/*/scan' -type f); " \
                        "do echo '- - -' > $i; done;"
 
-    def __init__(self, path, disk_type, serial_number, block_size, features):
+    def __init__(self, path, disk_type, serial_number, block_size):
         self.plug_command = SataDisk.plug_all_command
-        Disk.__init__(self, path, disk_type, serial_number, block_size, features)
+        Disk.__init__(self, path, disk_type, serial_number, block_size)
 
     def execute_plug_command(self):
         TestRun.executor.run_expect_success(self.plug_command)

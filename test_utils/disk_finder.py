@@ -67,74 +67,38 @@ def discover_hdd_devices(block_devices, devices_res):
 def discover_ssd_devices(block_devices, devices_res):
     ssd_count = int(TestRun.executor.run_expect_success(
         'intelmas show -intelssd | grep DevicePath | wc -l').stdout)
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    try:
-        with open(f"{dir_path}/qlc_disks.txt", "r") as file:
-            qlc_disks = file.read().splitlines()
-    except FileNotFoundError:
-        TestRun.LOGGER.warning("qlc_disk.txt not found. Skipping.")
-        qlc_disks = []
-
     for i in range(0, ssd_count):
-        feature_set = set()
-        device_path = TestRun.executor.run_expect_success(
-            f"intelmas show -intelssd {i} | grep DevicePath").stdout.split()[2]
-        dev = device_path.replace("/dev/", "")
-        if dev not in block_devices:
-            continue
-        serial_number = TestRun.executor.run_expect_success(
-            f"intelmas show -intelssd {i} | grep SerialNumber").stdout.split()[2].strip()
-        if 'nvme' not in device_path:
-            disk_type = 'sata'
-            dev = find_sata_ssd_device_path(serial_number, block_devices)
-            if dev is None:
+        # Workaround for intelmas bug that lists all of the devices (non intel included)
+        # with -intelssd flag
+        if TestRun.executor.run(
+                f"intelmas show -display index -intelssd {i} | grep -w Intel").exit_code == 0:
+            device_path = TestRun.executor.run_expect_success(
+                f"intelmas show -intelssd {i} | grep DevicePath").stdout.split()[2]
+            dev = device_path.replace("/dev/", "")
+            if dev not in block_devices:
                 continue
-            if "sg" in device_path:
-                device_path = f"{dev}"
-        elif TestRun.executor.run(
-                f"intelmas show -intelssd {i} | grep Optane").exit_code == 0:
-            disk_type = 'optane'
-            fw_ver = TestRun.executor.run(
-                f"intelmas show -intelssd {i} | grep -w Firmware").stdout.split()[2].strip()
-            if TestRun.executor.run(
-                    f"intelmas show -intelssd {i} | grep P5800"
-            ).exit_code == 0 and fw_ver[:3] in ["102", "103"]:
-                TestRun.LOGGER.warning(f"Setup contains Optane P5800 with old ASIC!. SSD ID: {i}")
-                feature_set.add("ads_old_asic")
+            serial_number = TestRun.executor.run_expect_success(
+                f"intelmas show -intelssd {i} | grep SerialNumber").stdout.split()[2].strip()
+            if 'nvme' not in device_path:
+                disk_type = 'sata'
+                dev = find_sata_ssd_device_path(serial_number, block_devices)
+                if dev is None:
+                    continue
+                if "sg" in device_path:
+                    device_path = f"{dev}"
+            elif TestRun.executor.run(
+                    f"intelmas show -intelssd {i} | grep Optane").exit_code == 0:
+                disk_type = 'optane'
             else:
-                feature_set.add("ads_new_asic")
-        else:
-            disk_type = 'nand'
-            if _is_qlc(i, qlc_disks):
-                feature_set.add("qlc")
+                disk_type = 'nand'
 
-        devices_res.append({
-            "type": disk_type,
-            "path": resolve_to_by_id_link(device_path),
-            "serial": serial_number,
-            "blocksize": disk_utils.get_block_size(dev),
-            "size": disk_utils.get_size(dev),
-            "features": feature_set})
-
-        block_devices.remove(dev)
-
-
-def _is_qlc(disk_id, qlc_disk_list):
-    is_qlc = TestRun.executor.run(
-        f"intelmas show -all -intelssd {disk_id} | grep -w Product | grep -w QLC").exit_code == 0
-    product_family = TestRun.executor.run(
-        f"intelmas show -intelssd {disk_id} | grep ProductFamily").stdout.split(":")[1].strip()
-    disk_sn = TestRun.executor.run(
-        f"intelmas show -intelssd {disk_id} | grep SerialNumber").stdout.split(":")[1].strip()
-    is_drive_in_list = any(x in product_family for x in qlc_disk_list)
-    if is_drive_in_list:
-        return True
-    # checking by is_qlc might be deprecated at some point in the future
-    elif is_qlc and not is_drive_in_list:
-        TestRun.LOGGER.warning(f"Disk {disk_sn} seems to be QLC but its not in a qlc_disks.txt")
-        return True
-    else:
-        return False
+            devices_res.append({
+                "type": disk_type,
+                "path": resolve_to_by_id_link(device_path),
+                "serial": serial_number,
+                "blocksize": disk_utils.get_block_size(dev),
+                "size": disk_utils.get_size(dev)})
+            block_devices.remove(dev)
 
 
 def get_disk_serial_number(dev_path):
