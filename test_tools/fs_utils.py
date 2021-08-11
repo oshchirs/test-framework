@@ -6,7 +6,6 @@
 
 import base64
 import math
-import re
 import textwrap
 from datetime import datetime
 
@@ -244,7 +243,12 @@ def parse_ls_output(ls_output, dir_path=''):
         permissions = line_fields[0][1:].replace('.', '')
         owner = line_fields[2]
         group = line_fields[3]
-        size = Size(float(line_fields[4]), Unit.Byte)
+        has_size = ',' not in line_fields[4]
+        if has_size:
+            size = Size(float(line_fields[4]), Unit.Byte)
+        else:
+            size = None
+            line_fields.pop(4)
         split_date = line_fields[5].split('-')
         split_time = line_fields[6].split(':')
         modification_time = datetime(int(split_date[0]), int(split_date[1]), int(split_date[2]),
