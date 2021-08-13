@@ -45,8 +45,11 @@ class BaseExecutor:
         TestRun.LOGGER.write_output_to_command_log(output, command_id)
         return output
 
-    def run_in_background(self, command):
-        command += "&> /dev/null &echo $!"
+    def run_in_background(self,
+                          command,
+                          stdout_redirect_path="/dev/null",
+                          stderr_redirect_path="/dev/null"):
+        command += f"> {stdout_redirect_path} 2> {stderr_redirect_path} &echo $!"
         output = self.run(command)
 
         if output is not None:
