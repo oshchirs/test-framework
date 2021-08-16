@@ -10,7 +10,7 @@ from enum import IntEnum
 
 from core.test_run import TestRun
 from storage_devices.device import Device
-from test_tools import disk_utils, fs_utils
+from test_tools import disk_utils, fs_utils, nvme_cli
 from test_utils import disk_finder
 from test_utils.os_utils import wait
 from test_utils.output import CmdException
@@ -204,6 +204,16 @@ class NvmeDisk(Disk):
         disk_str = super().__str__()
         disk_str = f"pci address: {self.pci_address}, " + disk_str
         return disk_str
+
+    def format_disk(self, metadata_size=None, block_size=None,
+                    force=True, format_params=None, reset=True):
+        nvme_cli.format_disk(self, metadata_size, block_size, force, format_params, reset)
+
+    def get_lba_formats(self):
+        return nvme_cli.get_lba_formats(self)
+
+    def get_lba_format_in_use(self):
+        return nvme_cli.get_lba_format_in_use(self)
 
 
 class SataDisk(Disk):
