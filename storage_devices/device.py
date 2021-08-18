@@ -6,7 +6,7 @@ import os
 
 from core.test_run import TestRun
 from test_tools import disk_utils, fs_utils
-from test_tools.disk_utils import get_device_filesystem_type
+from test_tools.disk_utils import get_device_filesystem_type, get_pci_address
 from test_utils.io_stats import IoStats
 from test_utils.size import Size, Unit
 
@@ -17,6 +17,7 @@ class Device:
         self.path = path
         self.size = Size(disk_utils.get_size(self.get_device_id()), Unit.Byte)
         self.filesystem = get_device_filesystem_type(self.get_device_id())
+        self.pci_address = get_pci_address(self.get_device_id())
         self.mount_point = None
 
     def create_filesystem(self, fs_type: disk_utils.Filesystem, force=True, blocksize=None):
