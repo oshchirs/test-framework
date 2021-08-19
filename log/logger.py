@@ -182,8 +182,10 @@ class Log(HtmlLogManager, metaclass=Singleton):
         if not check_if_file_exists(messages_log):
             messages_log = "/var/log/syslog"
         log_files = {"messages": messages_log,
-                     "dmesg": "/tmp/dmesg",
-                     "cas": "/var/log/opencas.log"}
+                     "dmesg": "/tmp/dmesg"}
+        if hasattr(TestRun.usr, "logs_to_dump"):
+            log_files.update(TestRun.usr.logs_to_dump)
+
         TestRun.executor.run(f"dmesg > {log_files['dmesg']}")
 
         for log_name, log_source_path in log_files.items():
@@ -196,7 +198,6 @@ class Log(HtmlLogManager, metaclass=Singleton):
 
     def generate_summary(self, item, meta):
         import json
-        import hashlib
         summary_path = os.path.join(self.base_dir, 'info.json')
         with open(summary_path, "w+") as summary:
             data = {
