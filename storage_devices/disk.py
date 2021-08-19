@@ -15,6 +15,7 @@ from test_utils import disk_finder
 from test_utils.os_utils import wait
 from test_utils.output import CmdException
 from test_utils.size import Unit
+from test_tools.disk_utils import get_pci_address
 
 
 class DiskType(IntEnum):
@@ -186,6 +187,7 @@ class NvmeDisk(Disk):
 
     def __init__(self, path, disk_type, serial_number, block_size):
         Disk.__init__(self, path, disk_type, serial_number, block_size)
+        self.pci_address = get_pci_address(self.get_device_id())
 
     def execute_plug_command(self):
         TestRun.executor.run_expect_success(NvmeDisk.plug_all_command)
