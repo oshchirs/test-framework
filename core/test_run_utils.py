@@ -3,12 +3,12 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
 
-
 from IPy import IP
 import traceback
 import pytest
 import random
 import sys
+import os
 
 from connection.ssh_executor import SshExecutor
 from connection.local_executor import LocalExecutor
@@ -69,6 +69,18 @@ def __prepare(cls, item, config):
 
 
 TestRun.prepare = __prepare
+
+@classmethod
+def __attach_log(cls, log_path, target_name=None):
+    if target_name is None:
+        target_name = os.path.basename(log_path)
+    if cls.config.get('extra_logs'):
+        cls.config["extra_logs"][target_name] = log_path
+    else:
+        cls.config["extra_logs"] = {target_name: log_path}
+
+
+TestRun.attach_log = __attach_log
 
 
 @classmethod

@@ -183,8 +183,8 @@ class Log(HtmlLogManager, metaclass=Singleton):
             messages_log = "/var/log/syslog"
         log_files = {"messages": messages_log,
                      "dmesg": "/tmp/dmesg"}
-        if hasattr(TestRun.usr, "logs_to_dump"):
-            log_files.update(TestRun.usr.logs_to_dump)
+        extra_logs = TestRun.config.get("extra_logs", {})
+        log_files.update(extra_logs)
 
         TestRun.executor.run(f"dmesg > {log_files['dmesg']}")
 
