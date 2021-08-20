@@ -75,17 +75,17 @@ def discover_ssd_devices(block_devices, devices_res):
             device_path = TestRun.executor.run_expect_success(
                 f"intelmas show -intelssd {i} | grep DevicePath").stdout.split()[2]
             dev = device_path.replace("/dev/", "")
+            if "sg" in dev:
+                sata_dev = TestRun.executor.run_expect_success(
+                    f"sg_map | grep {dev}").stdout.split()[1]
+                dev = sata_dev.replace("/dev/", "")
             if dev not in block_devices:
                 continue
             serial_number = TestRun.executor.run_expect_success(
                 f"intelmas show -intelssd {i} | grep SerialNumber").stdout.split()[2].strip()
             if 'nvme' not in device_path:
                 disk_type = 'sata'
-                dev = find_sata_ssd_device_path(serial_number, block_devices)
-                if dev is None:
-                    continue
-                if "sg" in device_path:
-                    device_path = f"{dev}"
+                device_path = f"{dev}"
             elif TestRun.executor.run(
                     f"intelmas show -intelssd {i} | grep Optane").exit_code == 0:
                 disk_type = 'optane'
@@ -133,15 +133,6 @@ def get_all_serial_numbers():
             TestRun.LOGGER.warning(f"Device {path} ({dev}) does not have a serial number.")
             serial_numbers[path] = path
     return serial_numbers
-
-
-def find_sata_ssd_device_path(serial_number, block_devices):
-    for dev in block_devices:
-        dev_serial = TestRun.executor.run_expect_success(
-            f"sg_inq {dev} | grep '[Ss]erial number'").stdout.split(': ')[1].strip()
-        if dev_serial == serial_number:
-            return dev
-    return None
 
 
 def get_system_disks():
