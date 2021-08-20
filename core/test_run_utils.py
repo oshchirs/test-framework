@@ -70,6 +70,7 @@ def __prepare(cls, item, config):
 
 TestRun.prepare = __prepare
 
+
 @classmethod
 def __attach_log(cls, log_path, target_name=None):
     if target_name is None:
