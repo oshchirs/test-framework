@@ -13,7 +13,6 @@ from storage_devices.device import Device
 from test_tools import disk_utils, fs_utils
 from test_utils import disk_finder
 from test_utils.os_utils import wait
-from test_utils.output import CmdException
 from test_utils.size import Unit
 from test_tools.disk_utils import get_pci_address
 
@@ -149,13 +148,13 @@ class Disk(Device):
     def plug(self):
         if self.is_detected():
             return
-        self.execute_plug_command()
+        TestRun.executor.run_expect_success(self.plug_command)
         self.wait_for_plug_status(True)
 
     def unplug(self):
         if not self.is_detected():
             return
-        self.execute_unplug_command()
+        TestRun.executor.run_expect_success(self.unplug_command)
         self.wait_for_plug_status(False)
 
     @staticmethod
@@ -187,18 +186,10 @@ class NvmeDisk(Disk):
 
     def __init__(self, path, disk_type, serial_number, block_size):
         Disk.__init__(self, path, disk_type, serial_number, block_size)
+        self.plug_command = NvmeDisk.plug_all_command
+        self.unplug_command = f"echo 1 > /sys/block/{self.get_device_id()}/device/remove || " \
+                              f"echo 1 > /sys/block/{self.get_device_id()}/device/device/remove"
         self.pci_address = get_pci_address(self.get_device_id())
-
-    def execute_plug_command(self):
-        TestRun.executor.run_expect_success(NvmeDisk.plug_all_command)
-
-    def execute_unplug_command(self):
-        if TestRun.executor.run(
-                f"echo 1 > /sys/block/{self.get_device_id()}/device/remove").exit_code != 0:
-            output = TestRun.executor.run(
-                f"echo 1 > /sys/block/{self.get_device_id()}/device/device/remove")
-            if output.exit_code != 0:
-                raise CmdException(f"Failed to unplug PCI disk using sysfs.", output)
 
     def __str__(self):
         disk_str = super().__str__()
@@ -211,15 +202,10 @@ class SataDisk(Disk):
                        "do echo '- - -' > $i; done;"
 
     def __init__(self, path, disk_type, serial_number, block_size):
-        self.plug_command = SataDisk.plug_all_command
         Disk.__init__(self, path, disk_type, serial_number, block_size)
-
-    def execute_plug_command(self):
-        TestRun.executor.run_expect_success(self.plug_command)
-
-    def execute_unplug_command(self):
-        TestRun.executor.run_expect_success(
-            f"echo 1 > {self.get_sysfs_properties(self.get_device_id()).full_path}/device/delete")
+        self.plug_command = SataDisk.plug_all_command
+        self.unplug_command = \
+            f"echo 1 > {self.get_sysfs_properties(self.get_device_id()).full_path}/device/delete"
 
     def get_sysfs_properties(self, device_id):
         ls_command = f"$(find -H /sys/devices/ -name {device_id} -type d)"
