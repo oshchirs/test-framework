@@ -85,7 +85,7 @@ def discover_ssd_devices(block_devices, devices_res):
                 f"intelmas show -intelssd {i} | grep SerialNumber").stdout.split()[2].strip()
             if 'nvme' not in device_path:
                 disk_type = 'sata'
-                device_path = f"{dev}"
+                device_path = dev
             elif TestRun.executor.run(
                     f"intelmas show -intelssd {i} | grep Optane").exit_code == 0:
                 disk_type = 'optane'
