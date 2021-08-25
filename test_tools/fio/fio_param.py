@@ -10,8 +10,8 @@ from enum import Enum
 from types import SimpleNamespace as Namespace
 
 from connection.base_executor import BaseExecutor
-from storage_devices.device import Device
 from core.test_run import TestRun
+from storage_devices.device import Device
 from test_tools.fio.fio_result import FioResult
 from test_utils.linux_command import LinuxCommand
 from test_utils.size import Size
@@ -317,10 +317,10 @@ class FioParam(LinuxCommand):
     def edit_global(self):
         return self.fio.global_cmd_parameters
 
-    def run(self):
+    def run(self, fio_timeout: datetime.timedelta = None):
         if "per_job_logs" in self.fio.global_cmd_parameters.command_param_dict:
             self.fio.global_cmd_parameters.set_param("per_job_logs", '0')
-        fio_output = self.fio.run()
+        fio_output = self.fio.run(fio_timeout)
         if fio_output.exit_code != 0:
             raise Exception(f"Exception occurred while trying to execute fio, exit_code:"
                             f"{fio_output.exit_code}.\n"
