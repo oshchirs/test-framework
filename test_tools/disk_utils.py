@@ -181,6 +181,11 @@ def get_sysfs_path(device):
     return sysfs_path
 
 
+def get_pci_address(device):
+    pci_address = TestRun.executor.run(f"cat /sys/block/{device}/device/address").stdout
+    return pci_address
+
+
 def check_partition_after_create(size, part_number, parent_dev_path, part_type, aligned):
     partition_path = get_partition_path(parent_dev_path, part_number)
     cmd = f"find {partition_path} -type l"

@@ -15,6 +15,7 @@ from test_utils import disk_finder
 from test_utils.os_utils import wait
 from test_utils.output import CmdException
 from test_utils.size import Unit
+from test_tools.disk_utils import get_pci_address
 
 
 class DiskType(IntEnum):
@@ -163,7 +164,7 @@ class Disk(Device):
         TestRun.executor.run_expect_success(SataDisk.plug_all_command)
 
     def __str__(self):
-        disk_str = f'system path: {self.path}, type: {self.disk_type}, ' \
+        disk_str = f'system path: {self.path}, type: {self.disk_type.name}, ' \
             f'serial: {self.serial_number}, size: {self.size}, ' \
             f'block size: {self.block_size}, partitions:\n'
         for part in self.partitions:
@@ -186,6 +187,7 @@ class NvmeDisk(Disk):
 
     def __init__(self, path, disk_type, serial_number, block_size):
         Disk.__init__(self, path, disk_type, serial_number, block_size)
+        self.pci_address = get_pci_address(self.get_device_id())
 
     def execute_plug_command(self):
         TestRun.executor.run_expect_success(NvmeDisk.plug_all_command)
@@ -197,6 +199,11 @@ class NvmeDisk(Disk):
                 f"echo 1 > /sys/block/{self.get_device_id()}/device/device/remove")
             if output.exit_code != 0:
                 raise CmdException(f"Failed to unplug PCI disk using sysfs.", output)
+
+    def __str__(self):
+        disk_str = super().__str__()
+        disk_str = f"pci address: {self.pci_address}, " + disk_str
+        return disk_str
 
 
 class SataDisk(Disk):
