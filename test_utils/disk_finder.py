@@ -17,11 +17,11 @@ def find_disks():
 
     TestRun.LOGGER.info("Finding platform's disks.")
 
-    # TODO: isdct should be implemented as a separate tool in the future.
-    #  There will be isdct installer in case, when it is not installed
-    output = TestRun.executor.run('isdct')
+    # TODO: intelmas should be implemented as a separate tool in the future.
+    #  There will be intelmas installer in case, when it is not installed
+    output = TestRun.executor.run('intelmas')
     if output.exit_code != 0:
-        raise Exception(f"Error while executing command: 'isdct'.\n"
+        raise Exception(f"Error while executing command: 'intelmas'.\n"
                         f"stdout: {output.stdout}\nstderr: {output.stderr}")
     block_devices = get_block_devices_list()
     try:
@@ -66,35 +66,39 @@ def discover_hdd_devices(block_devices, devices_res):
 # This method discovers only Intel SSD devices
 def discover_ssd_devices(block_devices, devices_res):
     ssd_count = int(TestRun.executor.run_expect_success(
-        'isdct show -intelssd | grep DevicePath | wc -l').stdout)
+        'intelmas show -intelssd | grep DevicePath | wc -l').stdout)
     for i in range(0, ssd_count):
-        device_path = TestRun.executor.run_expect_success(
-            f"isdct show -intelssd {i} | grep DevicePath").stdout.split()[2]
-        dev = device_path.replace("/dev/", "")
-        if dev not in block_devices:
-            continue
-        serial_number = TestRun.executor.run_expect_success(
-            f"isdct show -intelssd {i} | grep SerialNumber").stdout.split()[2].strip()
-        if 'nvme' not in device_path:
-            disk_type = 'sata'
-            dev = find_sata_ssd_device_path(serial_number, block_devices)
-            if dev is None:
+        # Workaround for intelmas bug that lists all of the devices (non intel included)
+        # with -intelssd flag
+        if TestRun.executor.run(
+                f"intelmas show -display index -intelssd {i} | grep -w Intel").exit_code == 0:
+            device_path = TestRun.executor.run_expect_success(
+                f"intelmas show -intelssd {i} | grep DevicePath").stdout.split()[2]
+            dev = device_path.replace("/dev/", "")
+            if "sg" in dev:
+                sata_dev = TestRun.executor.run_expect_success(
+                    f"sg_map | grep {dev}").stdout.split()[1]
+                dev = sata_dev.replace("/dev/", "")
+            if dev not in block_devices:
                 continue
-            if "sg" in device_path:
-                device_path = f"{dev}"
-        elif TestRun.executor.run(
-                f"isdct show -intelssd {i} | grep Optane").exit_code == 0:
-            disk_type = 'optane'
-        else:
-            disk_type = 'nand'
+            serial_number = TestRun.executor.run_expect_success(
+                f"intelmas show -intelssd {i} | grep SerialNumber").stdout.split()[2].strip()
+            if 'nvme' not in device_path:
+                disk_type = 'sata'
+                device_path = dev
+            elif TestRun.executor.run(
+                    f"intelmas show -intelssd {i} | grep Optane").exit_code == 0:
+                disk_type = 'optane'
+            else:
+                disk_type = 'nand'
 
-        devices_res.append({
-            "type": disk_type,
-            "path": resolve_to_by_id_link(device_path),
-            "serial": serial_number,
-            "blocksize": disk_utils.get_block_size(dev),
-            "size": disk_utils.get_size(dev)})
-        block_devices.remove(dev)
+            devices_res.append({
+                "type": disk_type,
+                "path": resolve_to_by_id_link(device_path),
+                "serial": serial_number,
+                "blocksize": disk_utils.get_block_size(dev),
+                "size": disk_utils.get_size(dev)})
+            block_devices.remove(dev)
 
 
 def get_disk_serial_number(dev_path):
@@ -129,15 +133,6 @@ def get_all_serial_numbers():
             TestRun.LOGGER.warning(f"Device {path} ({dev}) does not have a serial number.")
             serial_numbers[path] = path
     return serial_numbers
-
-
-def find_sata_ssd_device_path(serial_number, block_devices):
-    for dev in block_devices:
-        dev_serial = TestRun.executor.run_expect_success(
-            f"sg_inq {dev} | grep '[Ss]erial number'").stdout.split(': ')[1].strip()
-        if dev_serial == serial_number:
-            return dev
-    return None
 
 
 def get_system_disks():
