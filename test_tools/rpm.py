@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
 
-from os.path import join
+import posixpath
+
 from core.test_run import TestRun
 from test_tools.fs_utils import ls, parse_ls_output
 
@@ -26,7 +27,7 @@ class Rpm:
         param: sources_dir: directory with make script to generate RPM packages
         """
         TestRun.executor.run_expect_success(f"cd {sources_dir} && make rpm")
-        self.packages_dir = join(sources_dir, 'packages')
+        self.packages_dir = posixpath.join(sources_dir, 'packages')
 
     def update_packages_to_install(self):
         """

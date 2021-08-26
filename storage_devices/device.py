@@ -2,7 +2,7 @@
 # Copyright(c) 2019-2021 Intel Corporation
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
-import os
+import posixpath
 
 from core.test_run import TestRun
 from test_tools import disk_utils, fs_utils
@@ -66,13 +66,14 @@ class Device:
         return IoStats.get_io_stats(self.get_device_id())
 
     def get_sysfs_property(self, property_name):
-        path = os.path.join(disk_utils.get_sysfs_path(self.get_device_id()), "queue", property_name)
+        path = posixpath.join(disk_utils.get_sysfs_path(self.get_device_id()),
+                              "queue", property_name)
         return TestRun.executor.run_expect_success(f"cat {path}").stdout
 
     def set_sysfs_property(self, property_name, value):
         TestRun.LOGGER.info(
             f"Setting {property_name} for device {self.get_device_id()} to {value}.")
-        path = os.path.join(disk_utils.get_sysfs_path(self.get_device_id()), "queue",
+        path = posixpath.join(disk_utils.get_sysfs_path(self.get_device_id()), "queue",
                             property_name)
         fs_utils.write_file(path, str(value))
 

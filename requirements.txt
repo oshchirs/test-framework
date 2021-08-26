@@ -13,3 +13,4 @@ gitpython>=3.1.7
 cryptography>=3.4.6
 psutil>=5.8.0
 py==1.10.0
+portalocker>=2.3.1

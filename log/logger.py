@@ -3,18 +3,19 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
 
-from contextlib import contextmanager
-import logging
 import sys
 import os
+import portalocker
+import logging
 from threading import Lock
 from datetime import datetime
+from contextlib import contextmanager
+
 from log.html_log_manager import HtmlLogManager
 from log.html_log_config import HtmlLogConfig
 from log.html_presentation_policy import html_policy
 from test_utils.output import Output
 from test_utils.singleton import Singleton
-from test_utils.file_locker import lock_file
 
 
 def create_log(log_base_path, test_module, additional_args=None):
@@ -146,10 +147,9 @@ class Log(HtmlLogManager, metaclass=Singleton):
         super(Log, self).debug(message)
         command_log_path = os.path.join(self.base_dir, "dut_info", 'commands.log')
         timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S:%f')
-        with open(command_log_path, "ab+") as command_log:
-            with lock_file(command_log):
-                line_to_write = f"[{timestamp}] {message}\n"
-                command_log.write(line_to_write.encode())
+        with portalocker.Lock(command_log_path, "ab+") as command_log:
+            line_to_write = f"[{timestamp}] {message}\n"
+            command_log.write(line_to_write.encode())
 
     def write_command_to_command_log(self, command, command_id):
         self.write_to_command_log(f"Command id: {command_id}\n{command}")

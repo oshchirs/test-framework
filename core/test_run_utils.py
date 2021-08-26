@@ -8,7 +8,7 @@ import traceback
 import pytest
 import random
 import sys
-import os
+import posixpath
 
 from connection.ssh_executor import SshExecutor
 from connection.local_executor import LocalExecutor
@@ -74,7 +74,7 @@ TestRun.prepare = __prepare
 @classmethod
 def __attach_log(cls, log_path, target_name=None):
     if target_name is None:
-        target_name = os.path.basename(log_path)
+        target_name = posixpath.basename(log_path)
     if cls.config.get('extra_logs'):
         cls.config["extra_logs"][target_name] = log_path
     else:
