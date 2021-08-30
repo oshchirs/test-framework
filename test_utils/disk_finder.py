@@ -47,6 +47,8 @@ def get_block_devices_list():
 
 def discover_hdd_devices(block_devices, devices_res):
     for dev in block_devices:
+        if TestRun.executor.run_expect_success(f"cat /sys/block/{dev}/removable").stdout == "1":
+            continue  # skip removable drives
         block_size = disk_utils.get_block_size(dev)
         if int(block_size) == 4096:
             disk_type = 'hdd4k'
