@@ -181,16 +181,16 @@ class Log(HtmlLogManager, metaclass=Singleton):
         messages_log = "/var/log/messages"
         if not check_if_file_exists(messages_log):
             messages_log = "/var/log/syslog"
-        log_files = {"messages": messages_log,
-                     "dmesg": "/tmp/dmesg"}
+        log_files = {"messages.log": messages_log,
+                     "dmesg.log": "/tmp/dmesg"}
         extra_logs = TestRun.config.get("extra_logs", {})
         log_files.update(extra_logs)
 
-        TestRun.executor.run(f"dmesg > {log_files['dmesg']}")
+        TestRun.executor.run(f"dmesg > {log_files['dmesg.log']}")
 
         for log_name, log_source_path in log_files.items():
             try:
-                log_destination_path = os.path.join(self.base_dir, "dut_info", f'{log_name}.log')
+                log_destination_path = os.path.join(self.base_dir, "dut_info", f'{log_name}')
                 TestRun.executor.rsync_from(log_source_path, log_destination_path)
             except Exception as e:
                 TestRun.LOGGER.warning(f"There was a problem during gathering {log_name} log.\n"
