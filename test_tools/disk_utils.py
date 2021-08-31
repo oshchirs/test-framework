@@ -7,6 +7,7 @@
 import os
 import re
 import time
+import posixpath
 from enum import Enum
 
 from core.test_run import TestRun
@@ -337,7 +338,7 @@ def _is_by_id_path(path: str):
     """check if given path already is proper by-id path"""
     dev_by_id_dir = "/dev/disk/by-id"
     by_id_paths = parse_ls_output(ls(dev_by_id_dir), dev_by_id_dir)
-    return path in [os.path.join(dev_by_id_dir, id_path.full_path) for id_path in by_id_paths]
+    return path in [posixpath.join(dev_by_id_dir, id_path.full_path) for id_path in by_id_paths]
 
 
 def _is_dev_path_whitelisted(path: str):
@@ -346,7 +347,7 @@ def _is_dev_path_whitelisted(path: str):
 
 
 def validate_dev_path(path: str):
-    if not os.path.isabs(path):
+    if not posixpath.isabs(path):
         raise ValueError(f'Given path "{path}" is not absolute.')
 
     if _is_dev_path_whitelisted(path):

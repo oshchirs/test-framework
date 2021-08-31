@@ -3,8 +3,9 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
 
-import os
 import time
+import posixpath
+
 from datetime import timedelta
 from core.test_run import TestRun
 from test_tools import fs_utils
@@ -23,7 +24,7 @@ class Vdbench:
             raise Exception("Missing fields in config! ('working_dir', 'source_dir' and "
                             "'reinstall' required)")
 
-        self.result_dir = os.path.join(self.working_dir, 'result.tod')
+        self.result_dir = posixpath.join(self.working_dir, 'result.tod')
 
     def pre_setup(self):
         pass
@@ -38,7 +39,7 @@ class Vdbench:
 
         fs_utils.create_directory(self.working_dir)
         TestRun.LOGGER.info("Copying vdbench to working dir.")
-        fs_utils.copy(os.path.join(self.source_dir, "*"), self.working_dir,
+        fs_utils.copy(posixpath.join(self.source_dir, "*"), self.working_dir,
                       True, True)
         pass
 
@@ -51,11 +52,11 @@ class Vdbench:
             config += ","
         config += f"elapsed={int(run_time.total_seconds())}"
         TestRun.LOGGER.info(f"Vdbench config:\n{config}")
-        fs_utils.write_file(os.path.join(self.working_dir, "param.ini"), config)
+        fs_utils.write_file(posixpath.join(self.working_dir, "param.ini"), config)
 
     def run(self):
-        cmd = f"{os.path.join(self.working_dir, 'vdbench')} " \
-              f"-f {os.path.join(self.working_dir, 'param.ini')} " \
+        cmd = f"{posixpath.join(self.working_dir, 'vdbench')} " \
+              f"-f {posixpath.join(self.working_dir, 'param.ini')} " \
               f"-vr -o {self.result_dir}"
         full_cmd = f"screen -dmS vdbench {cmd}"
         TestRun.executor.run(full_cmd)
@@ -75,7 +76,7 @@ class Vdbench:
     def analyze_log(self):
         output = TestRun.executor.run(
             f"ls -1td {self.result_dir[0:len(self.result_dir) - 3]}* | head -1")
-        log_path = os.path.join(output.stdout if output.exit_code == 0 else self.result_dir,
+        log_path = posixpath.join(output.stdout if output.exit_code == 0 else self.result_dir,
                                 "logfile.html")
 
         log_file = fs_utils.read_file(log_path)

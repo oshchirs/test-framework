@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
 import math
-import os
 import time
+import posixpath
 from datetime import timedelta, datetime
 
 from aenum import IntFlag, Enum, IntEnum
@@ -400,7 +400,7 @@ def set_wbt_lat(device: Device, value: int):
     if value < 0:
         raise ValueError("Write back latency can't be negative number")
 
-    wbt_lat_config_path = os.path.join(
+    wbt_lat_config_path = posixpath.join(
         get_sysfs_path(device.get_device_id()), "queue/wbt_lat_usec"
     )
 
@@ -408,7 +408,7 @@ def set_wbt_lat(device: Device, value: int):
 
 
 def get_wbt_lat(device: Device):
-    wbt_lat_config_path = os.path.join(
+    wbt_lat_config_path = posixpath.join(
         get_sysfs_path(device.get_device_id()), "queue/wbt_lat_usec"
     )
 

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #
 
-import os
+import posixpath
 
 from core.test_run import TestRun
 from test_tools import disk_utils
@@ -175,10 +175,10 @@ def __get_slaves(device_name: str):
 
 def resolve_to_by_id_link(path):
     by_id_paths = TestRun.executor.run_expect_success("ls /dev/disk/by-id -1").stdout.splitlines()
-    dev_full_paths = [os.path.join("/dev/disk/by-id", by_id_path) for by_id_path in by_id_paths]
+    dev_full_paths = [posixpath.join("/dev/disk/by-id", by_id_path) for by_id_path in by_id_paths]
 
     for full_path in dev_full_paths:
-        if readlink(full_path) == readlink(os.path.join("/dev", path)):
+        if readlink(full_path) == readlink(posixpath.join("/dev", path)):
             return full_path
 
     raise ValueError(f'By-id device link not found for device {path}')
