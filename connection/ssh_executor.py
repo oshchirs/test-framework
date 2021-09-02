@@ -31,7 +31,8 @@ class SshExecutor(BaseExecutor):
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
             self.ssh.connect(self.ip, username=user,
-                             port=port, timeout=timeout.total_seconds())
+                             port=port, timeout=timeout.total_seconds(),
+                             banner_timeout=timeout.total_seconds())
         except paramiko.AuthenticationException as e:
             raise paramiko.AuthenticationException(
                 f"Authentication exception occurred while trying to connect to DUT. "

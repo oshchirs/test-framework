@@ -20,10 +20,10 @@ class Dut:
         self.spider = dut_info['spider'] if 'spider' in dut_info else None
         self.wps = dut_info['wps'] if 'wps' in dut_info else None
         self.env = dut_info['env'] if 'env' in dut_info else None
-        self.ip = dut_info['ip'] if 'ip' in dut_info else None
+        self.ip = dut_info['ip'] if 'ip' in dut_info else "127.0.0.1"
 
     def __str__(self):
-        dut_str = f'ip: {self.ip}\n' if self.ip is not None else ''
+        dut_str = f'ip: {self.ip}\n'
         dut_str += f'ipmi: {self.ipmi["ip"]}\n' if self.ipmi is not None else ''
         dut_str += f'spider: {self.spider["ip"]}\n' if self.spider is not None else ''
         dut_str += f'wps: {self.wps["ip"]} port: {self.wps["port"]}\n' \
