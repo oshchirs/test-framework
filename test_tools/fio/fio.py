@@ -14,7 +14,7 @@ from test_utils import os_utils
 
 class Fio:
     def __init__(self, executor_obj=None):
-        self.fio_version = "fio-3.18"
+        self.fio_version = "fio-3.27"
         self.default_run_time = datetime.timedelta(hours=1)
         self.jobs = []
         self.executor = executor_obj if executor_obj is not None else TestRun.executor
