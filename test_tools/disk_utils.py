@@ -18,6 +18,9 @@ from test_utils.output import CmdException
 from test_utils.size import Size, Unit
 
 
+SECTOR_SIZE = 512
+
+
 class Filesystem(Enum):
     xfs = 0
     ext3 = 1
@@ -172,7 +175,7 @@ def get_block_size(device):
 def get_size(device):
     output = TestRun.executor.run_expect_success(f"cat {get_sysfs_path(device)}/size")
     blocks_count = int(output.stdout)
-    return blocks_count * int(get_block_size(device))
+    return blocks_count * SECTOR_SIZE
 
 
 def get_sysfs_path(device):
