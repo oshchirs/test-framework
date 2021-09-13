@@ -16,6 +16,9 @@ class LinuxCommand:
         self.param_separator = ' '
         self.param_value_prefix = '='
         self.param_value_list_separator = ','
+        self.command_env_var_dict = defaultdict(list)
+        self.env_var_separator = ' '
+        self.env_var_value_prefix = '='
 
     def run(self):
         return self.command_executor.run(str(self))
@@ -45,13 +48,29 @@ class LinuxCommand:
             del self.command_param_dict[key]
         return self
 
+    def set_env_var(self, key, *values):
+        self.remove_env_var(key)
+
+        for val in values:
+            self.command_env_var_dict[key].append(str(val))
+        return self
+
+    def remove_env_var(self, key):
+        if key in self.command_env_var_dict:
+            del self.command_env_var_dict[key]
+        return self
+
     def get_parameter_value(self, param_name):
         if param_name in self.command_param_dict.keys():
             return self.command_param_dict[param_name]
         return None
 
     def __str__(self):
-        command = self.command_name
+        command = ''
+        for key, value in self.command_env_var_dict.items():
+            command += f'{key}{self.env_var_value_prefix}{",".join(value)}' \
+                       f'{self.env_var_separator}'
+        command += self.command_name
         for key, value in self.command_param_dict.items():
             command += f'{self.param_separator}{self.param_name_prefix}' \
                 f'{key}{self.param_value_prefix}{",".join(value)}'

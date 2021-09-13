@@ -55,7 +55,9 @@ class IoEngine(Enum):
     # File is memory mapped with mmap and data copied using memcpy.
     mmap = 6,
     # RADOS Block Device
-    rbd = 7
+    rbd = 7,
+    # SPDK Block Device
+    spdk_bdev = 8
 
 
 class ReadWrite(Enum):
@@ -254,8 +256,17 @@ class FioParam(LinuxCommand):
     def lat_percentiles(self, value: bool):
         return self.set_param('lat_percentiles', int(value))
 
+    def scramble_buffers(self, value: bool):
+        return self.set_param('scramble_buffers', int(value))
+
     def slat_percentiles(self, value: bool):
         return self.set_param('slat_percentiles', int(value))
+
+    def spdk_core_mask(self, value: str):
+        return self.set_param('spdk_core_mask', value)
+
+    def spdk_json_conf(self, path):
+        return self.set_param('spdk_json_conf', path)
 
     def clat_percentiles(self, value: bool):
         return self.set_param('clat_percentiles', int(value))
