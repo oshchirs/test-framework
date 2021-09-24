@@ -49,7 +49,7 @@ class BaseExecutor:
                           command,
                           stdout_redirect_path="/dev/null",
                           stderr_redirect_path="/dev/null"):
-        command += f"> {stdout_redirect_path} 2> {stderr_redirect_path} &echo $!"
+        command += f" > {stdout_redirect_path} 2> {stderr_redirect_path} &echo $!"
         output = self.run(command)
 
         if output is not None:
