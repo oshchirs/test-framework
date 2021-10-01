@@ -59,7 +59,7 @@ class BaseExecutor:
         self.run(f"tail --pid={pid} -f /dev/null", timeout)
 
     def check_if_process_exists(self, pid: int):
-        output = self.run(f"ps aux | awk '{{print $2 }}' | grep {pid}")
+        output = self.run(f"ps aux | awk '{{print $2 }}' | grep {pid}", timedelta(seconds=10))
         return True if output.exit_code == 0 else False
 
     def kill_process(self, pid: int):
