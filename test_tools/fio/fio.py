@@ -97,8 +97,9 @@ class Fio:
                 f" {str(self.base_cmd_parameters)} -"
         else:
             fio_parameters = test_tools.fio.fio_param.FioParamCmd(self, self.executor)
-            fio_parameters.command_param_dict.update(self.base_cmd_parameters.command_param_dict)
-            fio_parameters.command_param_dict.update(self.global_cmd_parameters.command_param_dict)
+            fio_parameters.command_env_var.update(self.base_cmd_parameters.command_env_var)
+            fio_parameters.command_param.update(self.base_cmd_parameters.command_param)
+            fio_parameters.command_param.update(self.global_cmd_parameters.command_param)
             fio_parameters.command_flags.extend(self.global_cmd_parameters.command_flags)
             fio_parameters.set_param('name', 'fio')
             command = str(fio_parameters)

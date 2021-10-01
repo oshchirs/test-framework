@@ -55,7 +55,9 @@ class IoEngine(Enum):
     # File is memory mapped with mmap and data copied using memcpy.
     mmap = 6,
     # RADOS Block Device
-    rbd = 7
+    rbd = 7,
+    # SPDK Block Device
+    spdk_bdev = 8
 
 
 class ReadWrite(Enum):
@@ -123,7 +125,7 @@ class FioParam(LinuxCommand):
         return self.set_param('cpus_allowed_policy', value.name)
 
     def direct(self, value: bool = True):
-        if 'buffered' in self.command_param_dict:
+        if 'buffered' in self.command_param:
             self.remove_param('buffered')
         return self.set_param('direct', int(value))
 
@@ -166,15 +168,15 @@ class FioParam(LinuxCommand):
 
     def io_depth(self, value: int):
         if value != 1:
-            if 'ioengine' in self.command_param_dict and \
-                    self.command_param_dict['ioengine'] == 'sync':
+            if 'ioengine' in self.command_param and \
+                    self.command_param['ioengine'] == 'sync':
                 TestRun.LOGGER.warning("Setting iodepth will have no effect with "
                                               "'ioengine=sync' setting")
         return self.set_param('iodepth', value)
 
     def io_engine(self, value: IoEngine):
         if value == IoEngine.sync:
-            if 'iodepth' in self.command_param_dict and self.command_param_dict['iodepth'] != 1:
+            if 'iodepth' in self.command_param and self.command_param['iodepth'] != 1:
                 TestRun.LOGGER.warning("Setting 'ioengine=sync' will cause iodepth setting "
                                               "to be ignored")
         return self.set_param('ioengine', value.name)
@@ -186,7 +188,7 @@ class FioParam(LinuxCommand):
         return self.set_param('loops', value)
 
     def no_random_map(self, value: bool = True):
-        if 'verify' in self.command_param_dict:
+        if 'verify' in self.command_param:
             raise ValueError("'NoRandomMap' parameter is mutually exclusive with verify")
         if value:
             return self.set_flags('norandommap')
@@ -254,8 +256,17 @@ class FioParam(LinuxCommand):
     def lat_percentiles(self, value: bool):
         return self.set_param('lat_percentiles', int(value))
 
+    def scramble_buffers(self, value: bool):
+        return self.set_param('scramble_buffers', int(value))
+
     def slat_percentiles(self, value: bool):
         return self.set_param('slat_percentiles', int(value))
+
+    def spdk_core_mask(self, value: str):
+        return self.set_param('spdk_core_mask', value)
+
+    def spdk_json_conf(self, path):
+        return self.set_param('spdk_json_conf', path)
 
     def clat_percentiles(self, value: bool):
         return self.set_param('clat_percentiles', int(value))
@@ -318,7 +329,7 @@ class FioParam(LinuxCommand):
         return self.fio.global_cmd_parameters
 
     def run(self, fio_timeout: datetime.timedelta = None):
-        if "per_job_logs" in self.fio.global_cmd_parameters.command_param_dict:
+        if "per_job_logs" in self.fio.global_cmd_parameters.command_param:
             self.fio.global_cmd_parameters.set_param("per_job_logs", '0')
         fio_output = self.fio.run(fio_timeout)
         if fio_output.exit_code != 0:
@@ -330,7 +341,7 @@ class FioParam(LinuxCommand):
         return self.get_results(out)
 
     def run_in_background(self):
-        if "per_job_logs" in self.fio.global_cmd_parameters.command_param_dict:
+        if "per_job_logs" in self.fio.global_cmd_parameters.command_param:
             self.fio.global_cmd_parameters.set_param("per_job_logs", '0')
         return self.fio.run_in_background()
 
